@@ -49,10 +49,8 @@ fi
 
 # Configuration
 bucket_input="$PREFIX-input"
-bucket_input_retention=3600s
 gs_input="gs://$bucket_input/"
 bucket_proc="$PREFIX-processing"
-bucket_proc_retention=1d
 gs_proc="gs://$bucket_proc/"
 bucket_output="$PREFIX-output"
 bucket_output_retention=10d
@@ -65,30 +63,32 @@ gcloud config set composer/location $GCP_LOCATION
 
 # Create Cloud Storage Buckets (and optionally remove them if they already exist)
 mapfile -t buckets < <(gsutil ls)
-if [[ " ${buckets[@]} " =~ $gs_input ]]; then
-	confirm "The input Bucket already exists. Delete it and all its objects? [y/N]" && \
-		gsutil rm -r $gs_input && \
-		gsutil mb -s standard -l $GCP_LOCATION -b on --retention $bucket_input_retention $gs_input && \
-		gsutil iam ch allUsers:objectViewer $gs_input
-else
-	gsutil mb -s standard -l $GCP_LOCATION -b on --retention $bucket_input_retention $gs_input
-	gsutil iam ch allUsers:objectViewer $gs_input
-fi
-if [[ " ${buckets[@]} " =~ $gs_proc ]]; then
-	confirm "The processing Bucket already exists. Delete it and all its objects? [y/N]" && \
-		gsutil rm -r $gs_proc && \
-		gsutil mb -s standard -l $GCP_LOCATION -b on --retention $bucket_proc_retention $gs_proc
-else
-	gsutil mb -s standard -l $GCP_LOCATION -b on --retention $bucket_proc_retention $gs_proc
-fi
-if [[ " ${buckets[@]} " =~ $gs_output ]]; then
-	confirm "The output Bucket already exists. Delete it and all its objects? [y/N]" && \
-		gsutil rm -r $gs_output && \
-		gsutil mb -s standard -l $GCP_LOCATION -b on --retention $bucket_output_retention $gs_output && \
-		gsutil iam ch allUsers:objectViewer $gs_output
-else
-	gsutil mb -s standard -l $GCP_LOCATION -b on --retention $bucket_output_retention $gs_output
-	gsutil iam ch allUsers:objectViewer $gs_output
+if [[ $* != *--skip-bucket-init* ]]; then
+    if [[ " ${buckets[@]} " =~ $gs_input ]]; then
+        confirm "The input Bucket already exists. Delete it and all its objects? [y/N]" && \
+            gsutil rm -r $gs_input && \
+            gsutil mb -s standard -l $GCP_LOCATION -b on $gs_input && \
+            gsutil iam ch allUsers:objectViewer $gs_input
+    else
+        gsutil mb -s standard -l $GCP_LOCATION -b on $gs_input
+        gsutil iam ch allUsers:objectViewer $gs_input
+    fi
+    if [[ " ${buckets[@]} " =~ $gs_proc ]]; then
+        confirm "The processing Bucket already exists. Delete it and all its objects? [y/N]" && \
+            gsutil rm -r $gs_proc && \
+            gsutil mb -s standard -l $GCP_LOCATION -b on $gs_proc
+    else
+        gsutil mb -s standard -l $GCP_LOCATION -b on $gs_proc
+    fi
+    if [[ " ${buckets[@]} " =~ $gs_output ]]; then
+        confirm "The output Bucket already exists. Delete it and all its objects? [y/N]" && \
+            gsutil rm -r $gs_output && \
+            gsutil mb -s standard -l $GCP_LOCATION -b on --retention $bucket_output_retention $gs_output && \
+            gsutil iam ch allUsers:objectViewer $gs_output
+    else
+        gsutil mb -s standard -l $GCP_LOCATION -b on --retention $bucket_output_retention $gs_output
+        gsutil iam ch allUsers:objectViewer $gs_output
+    fi
 fi
 
 # Deploy Cloud Functions

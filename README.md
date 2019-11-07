@@ -126,7 +126,7 @@ Creating gs://crappy-croc-output/...
 
 ```
 
-*REMINDER:* GCP Projects and Cloud Storage Buckets need to have a globally unique name, some make sure the names you use are available!
+**REMINDER:** GCP Projects and Cloud Storage Buckets need to have a globally unique name, some make sure the names you use are available!
 
 
 
