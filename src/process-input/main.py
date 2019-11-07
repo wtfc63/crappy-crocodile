@@ -62,45 +62,24 @@ def get_buckets():
 
 
 def video_is_not_present(bucket, video):
-    # print(f'Bucket: {bucket}')
-    # for blob in bucket.list_blobs():
-    #     print(blob)
-    # print_itr(bucket.list_blobs(prefix=video["id"]))
-    # print_itr(bucket.list_blobs(prefix=video["id"], delimiter='/'))
-    # print_itr(bucket.list_blobs(prefix=f'{video["id"]}/'))
-    # print_itr(bucket.list_blobs(prefix=f'{video["id"]}/', delimiter='/'))
-    # print_itr(bucket.list_blobs(prefix=f'/{video["id"]}'))
-    # print_itr(bucket.list_blobs(prefix=f'/{video["id"]}', delimiter='/'))
-    blobs = bucket.list_blobs(prefix=f'{video["id"]}/', delimiter='/') # TODO always empty... fix this
-    if blobs.max_results is None:
-        return True
-    else:
-        print(f'Blobs with prefix "{video["id"]}" in bucket "{bucket.name}":')
-        for blob in blobs:
-            print(blob)
-        return False
+    return not bucket.blob(get_video_blob_name(video)).exists()
 
 
-def print_itr(iterator):
-    if iterator.max_results is None:
-        print('empty')
-    else:
-        for blob in iterator:
-            print(blob)
+def get_video_blob_name(video):
+    parts = video["contentType"].split("/")
+    extension = parts[len(parts) - 1]
+    return f'{video["id"]}/video.{extension}'
 
 
 def move_to_processing(buckets, video):
     source = buckets["input"].blob(video["name"])
     print(f'Moving "{video["name"]}" ({source})..."')
-    parts = video["contentType"].split("/")
-    extension = parts[len(parts) - 1]
-    processing_blob_name = f'{video["id"]}/video.{extension}'
-    dest = buckets["input"].copy_blob(source, buckets["processing"], processing_blob_name)
+    dest_name = get_video_blob_name(video)
+    dest = buckets["input"].copy_blob(source, buckets["processing"], dest_name)
     source.delete()
     print(f'Moved video "{buckets["input"].name}/{video["name"]}" from input Bucket to processing Bucket '
-          f'(new name: "{buckets["processing"].name}/{processing_blob_name}")')
+          f'(new name: "{buckets["processing"].name}/{dest_name}")')
     return dest
-
 
 def publish(video_info):
     print(f'Publishing "file-ready" event for: {video_info}')
