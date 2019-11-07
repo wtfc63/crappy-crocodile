@@ -8,6 +8,14 @@ public class Result {
     private String videoId;
     private String message;
 
+    public Result() {
+    }
+
+    public Result(String videoId, String message) {
+        this.videoId = videoId;
+        this.message = message;
+    }
+
     public String getVideoId() {
         return videoId;
     }

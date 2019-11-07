@@ -37,8 +37,9 @@ dependencies {
     compile "io.micronaut:micronaut-validation"
     compile "io.micronaut:micronaut-runtime"
     compile "io.micronaut:micronaut-management"
-    compile "com.google.code.gson:gson:2.8.6"
     compile "commons-codec:commons-codec:1.13"
+    compile "com.google.code.gson:gson:2.8.6"
+    compile "com.google.cloud:google-cloud-video-intelligence:0.115.0-beta"
     runtime "ch.qos.logback:logback-classic:1.2.3"
     testAnnotationProcessor platform("io.micronaut:micronaut-bom:1.2.0")
     testAnnotationProcessor "io.micronaut:micronaut-inject-java"

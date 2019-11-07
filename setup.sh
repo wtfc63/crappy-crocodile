@@ -56,6 +56,8 @@ if [[ -z "${PREFIX}" ]]; then
 fi
 
 # Configuration
+service_account="$PREFIX-srv"
+credentials_file="gcp-credentials.json"
 bucket_input="$PREFIX-input"
 gs_input="gs://$bucket_input/"
 bucket_proc="$PREFIX-processing"
@@ -76,6 +78,22 @@ gcloud config set project $GCP_PROJECT_ID
 gcloud config set composer/location $GCP_LOCATION
 gcloud config set run/region $GCP_LOCATION
 gcloud auth configure-docker
+gcloud services enable videointelligence.googleapis.com
+
+# Setup the GCP Service Accounts
+if [[ $* != *--skip-account-init* ]]; then
+    service_account_email=$(
+        gcloud iam service-accounts list --filter="display_name=$service_account" --format="value(email)"
+    )
+    if [[ ! $service_account_email =~ $service_account ]]; then
+        gcloud iam service-accounts create $service_account --display-name $service_account
+        gcloud projects add-iam-policy-binding $GCP_PROJECT_ID \
+            --member "serviceAccount:$service_account@$GCP_PROJECT_ID.iam.gserviceaccount.com" \
+            --role "roles/owner"
+        gcloud iam service-accounts keys create $credentials_file \
+            --iam-account "$service_account@$GCP_PROJECT_ID.iam.gserviceaccount.com"
+    fi
+fi
 
 # Create Cloud Storage Buckets (and optionally remove them if they already exist)
 if [[ $* != *--skip-bucket-init* ]]; then
@@ -141,6 +159,8 @@ fi
 # Build & Deploy Cloud Run Services
 if [[ $* != *--skip-cloudrun-init* ]]; then
     cd src/init-analysis
+
+    mkdir -p "src/main/jib" && cp "../../$credentials_file" "src/main/jib/$credentials_file"
     cat  > gradle.properties <<EOF
 gcpProjectId=$GCP_PROJECT_ID
 gcrImage=$service_init_analysis
@@ -149,6 +169,8 @@ EOF
     gcloud beta run deploy \
         $service_init_analysis \
         --image $service_init_analysis_image \
+        --memory 512Mi \
+        --update-env-vars "GOOGLE_APPLICATION_CREDENTIALS=$credentials_file" \
         --platform managed \
         --allow-unauthenticated
     service_init_analysis_url=$(

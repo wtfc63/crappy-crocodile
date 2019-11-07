@@ -17,8 +17,9 @@ def process_input(event, context):
         buckets = get_buckets()
         if video_is_not_present(buckets["processing"], video) \
                 and video_is_not_present(buckets["output"], video):
-            processing_video = move_to_processing(buckets, video)
-            video["link"] = processing_video.self_link
+            processing = move_to_processing(buckets, video)
+            video["url"] = processing["url"]
+            video["link"] = processing["blob"].self_link
             store_metadata(buckets["processing"], video)
             return publish(video)
         else:
@@ -79,10 +80,11 @@ def move_to_processing(buckets, video):
     print(f'Moving "{video["name"]}" ({source})..."')
     dest_name = get_video_blob_name(video)
     dest = buckets["input"].copy_blob(source, buckets["processing"], dest_name)
+    dest_url = f'gs://{buckets["processing"].name}/{dest_name}'
     source.delete()
     print(f'Moved video "{buckets["input"].name}/{video["name"]}" from input Bucket to processing Bucket '
-          f'(new name: "{buckets["processing"].name}/{dest_name}")')
-    return dest
+          f'(destination-url="{dest_url}")')
+    return {'url': dest_url, 'blob': dest}
 
 
 def store_metadata(bucket, video_info):

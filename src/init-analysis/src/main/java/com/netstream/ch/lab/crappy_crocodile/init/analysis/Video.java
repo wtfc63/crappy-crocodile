@@ -9,6 +9,7 @@ public class Video {
     private String name;
     private String contentType;
     private String size;
+    private String url;
     private String link;
 
     public String getId() {
@@ -41,6 +42,14 @@ public class Video {
 
     public void setSize(String size) {
         this.size = size;
+    }
+
+    public String getUrl() {
+        return url;
+    }
+
+    public void setUrl(String url) {
+        this.url = url;
     }
 
     public String getLink() {
