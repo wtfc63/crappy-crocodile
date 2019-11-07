@@ -1,0 +1,26 @@
+[
+  {
+    "name": "com.netstream.ch.lab.crappy_crocodile.init.analysis.PubSubBody",
+    "allPublicMethods": true,
+    "allPublicFields": true,
+    "allDeclaredConstructors": true
+  },
+  {
+    "name": "com.netstream.ch.lab.crappy_crocodile.init.analysis.PubSubMessage",
+    "allPublicMethods": true,
+    "allPublicFields": true,
+    "allDeclaredConstructors": true
+  },
+  {
+    "name": "com.netstream.ch.lab.crappy_crocodile.init.analysis.Result",
+    "allPublicMethods": true,
+    "allPublicFields": true,
+    "allDeclaredConstructors": true
+  },
+  {
+    "name": "com.netstream.ch.lab.crappy_crocodile.init.analysis.Video",
+    "allPublicMethods": true,
+    "allPublicFields": true,
+    "allDeclaredConstructors": true
+  }
+]

@@ -1,3 +1,20 @@
 micronaut:
-    application:
-        name: init-analysis
+  application:
+    name: init-analysis
+  health:
+    monitor:
+      enabled: true
+      interval: 15s
+      initial-delay: 30s
+
+endpoints:
+  health:
+    enabled: true
+    sensitive: false
+    details-visible: ANONYMOUS
+    disk-space:
+      enabled: false
+  info:
+    enabled: true
+    sensitive: false
+    details-visible: ANONYMOUS

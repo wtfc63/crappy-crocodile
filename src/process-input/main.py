@@ -1,7 +1,9 @@
+import os
 import base64
 import json
 
 from google.cloud import storage
+from google.cloud import pubsub_v1
 
 
 def process_input(event, context):
@@ -17,6 +19,7 @@ def process_input(event, context):
                 and video_is_not_present(buckets["output"], video):
             processing_video = move_to_processing(buckets, video)
             video["link"] = processing_video.self_link
+            store_metadata(buckets["processing"], video)
             return publish(video)
         else:
             msg = f'Video "{video["name"]} was already processed or is currently processing"'
@@ -81,7 +84,28 @@ def move_to_processing(buckets, video):
           f'(new name: "{buckets["processing"].name}/{dest_name}")')
     return dest
 
-def publish(video_info):
-    print(f'Publishing "file-ready" event for: {video_info}')
-    return json.dumps(video_info)
 
+def store_metadata(bucket, video_info):
+    metadata = bucket.blob(f'{video_info["id"]}/metadata.json')
+    metadata.upload_from_string(json.dumps(video_info), content_type="application/json")
+
+
+def publish(video_info):
+    publisher = pubsub_v1.PublisherClient()
+    data = json.dumps(video_info)
+    print(f'Publishing "file-ready" event for: {data}')
+    project_id = os.environ.get('GCP_PROJECT', 'GCP_PROJECT is not set!')
+    prefix = os.environ.get('PREFIX', 'PREFIX is not set!')
+    topic_path = publisher.topic_path(project_id, f'{prefix}-file-ready')
+    future = publisher.publish(topic_path, data=data.encode('utf-8'))
+    future.add_done_callback(get_callback(future, data))
+    return
+
+
+def get_callback(f, data):
+    def callback(f):
+        try:
+            print(f.result())
+        except:  # noqa
+            print('Please handle {} for {}.'.format(f.exception(), data))
+    return callback

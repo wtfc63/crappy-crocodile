@@ -1,17 +1,19 @@
-# Stage 1: Build the JAR
-FROM gradle:5.3.1 as gradle
-COPY --chown=gradle . /home/app
-WORKDIR /home/app
-RUN gradle assemble --no-daemon
+# Container in which to build the application
+FROM adoptopenjdk/openjdk11-openj9:jdk-11.0.1.13-alpine-slim as builder
 
-# Stage 2: Build the native image
-FROM oracle/graalvm-ce:1.0.0-rc15 as graalvm
-COPY --from=gradle /home/app/build/libs/*.jar /home/app/server.jar
-WORKDIR /home/app
-RUN native-image --no-server -cp server.jar
+# Copy the source code into the builder container
+WORKDIR /micronaut/src/init-analysis
+COPY . .
 
-# Stage 3: Prepare Server
-FROM frolvlad/alpine-glibc
+# Build the application in the builder container
+RUN ./gradlew assemble
+
+# Container in which to run the application
+FROM adoptopenjdk/openjdk11-openj9:jdk-11.0.1.13-alpine-slim
+
+# Copy the jar from the builder container into the run container
+COPY --from=builder /micronaut/src/init-analysis/build/libs/init-analysis-*-all.jar init-analysis.jar
+
+# Run the application
 EXPOSE 8080
-COPY --from=graalvm /home/app/init-analysis .
-ENTRYPOINT ["./init-analysis"]
+CMD java -XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap -Dcom.sun.management.jmxremote -noverify ${JAVA_OPTS} -jar hello-world.jar

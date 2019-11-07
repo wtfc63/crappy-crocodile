@@ -24,6 +24,10 @@ if [[ -z `command -v gsutil` ]]; then
     echo "$PREFIX Please install 'gsutil' (included in the Google Cloud SDK) and add it to the path!"
     exit -1
 fi
+if [[ -z `command -v docker-credential-gcr` ]]; then
+    echo "$PREFIX Please install 'docker-credential-gcr' (included in the Google Cloud SDK) and add it to the path!"
+    exit -1
+fi
 
 # Read configuration and check if required env variables are present
 CONFIG=./config.sh 
@@ -41,6 +45,10 @@ if [[ -z "${GCP_LOCATION}" ]]; then
 	echo "Please configure the GCP location by setting the GCP_LOCATION environment variable"
 	exit -1
 fi
+if [[ -z "${GCR_HOST}" ]]; then
+	echo "Please configure the Google Cloud Container Registry host by setting the GCR_HOST environment variable"
+	exit -1
+fi
 
 if [[ -z "${PREFIX}" ]]; then
 	echo "Please configure the prefix for the GCP object names by setting the PREFIX environment variable"
@@ -55,15 +63,23 @@ gs_proc="gs://$bucket_proc/"
 bucket_output="$PREFIX-output"
 bucket_output_retention=10d
 gs_output="gs://$bucket_output/"
+topic_new_video="$PREFIX-file-ready"
+topic_started="$PREFIX-processing-started"
+topic_completed="$PREFIX-processing-completed"
+service_init_analysis="$PREFIX-init-analysis"
+service_init_analysis_image="$GCR_HOST/$GCP_PROJECT_ID/$service_init_analysis"
+service_init_analysis_subscription="$service_init_analysis-subscription"
 
 # Set GCP project and default location
 echo "Setting GCP project to '$GCP_PROJECT_ID' (PROJECT_NUMBER=$project_nr) and default location to '$GCP_LOCATION'..."
 gcloud config set project $GCP_PROJECT_ID
 gcloud config set composer/location $GCP_LOCATION
+gcloud config set run/region $GCP_LOCATION
+gcloud auth configure-docker
 
 # Create Cloud Storage Buckets (and optionally remove them if they already exist)
-mapfile -t buckets < <(gsutil ls)
 if [[ $* != *--skip-bucket-init* ]]; then
+    mapfile -t buckets < <(gsutil ls)
     if [[ " ${buckets[@]} " =~ $gs_input ]]; then
         confirm "The input Bucket already exists. Delete it and all its objects? [y/N]" && \
             gsutil rm -r $gs_input && \
@@ -91,14 +107,65 @@ if [[ $* != *--skip-bucket-init* ]]; then
     fi
 fi
 
-# Deploy Cloud Functions
-gcloud functions deploy "$PREFIX-process-input" \
-	--region $GCP_LOCATION \
-	--runtime python37 \
-	--source "./src/process-input/" \
-	--entry-point "process_input" \
-	--trigger-resource $bucket_input \
-	--trigger-event google.storage.object.finalize \
-	--memory 128MB \
-	--allow-unauthenticated
+# Setup Cloud Pub/Sub Topics
+if [[ $* != *--skip-topic-init* ]]; then
+    mapfile -t topics < <(gcloud pubsub topics list | grep -v "\-\-\-" | cut -d' ' -f 2)
+    if [[ " ${topics[@]} " =~ $topic_new_video ]]; then
+        gcloud pubsub topics delete $topic_new_video
+    fi
+    if [[ " ${topics[@]} " =~ $topic_started ]]; then
+        gcloud pubsub topics delete $topic_started
+    fi
+    if [[ " ${topics[@]} " =~ $topic_completed ]]; then
+        gcloud pubsub topics delete $topic_completed
+    fi
+    gcloud pubsub topics create $topic_new_video
+    gcloud pubsub topics create $topic_started
+    gcloud pubsub topics create $topic_completed
+fi
 
+# Deploy Cloud Functions
+if [[ $* != *--skip-function-init* ]]; then
+    gcloud functions deploy "$PREFIX-process-input" \
+        --region $GCP_LOCATION \
+        --runtime python37 \
+        --source "./src/process-input/" \
+        --entry-point "process_input" \
+        --update-env-vars "PREFIX=$PREFIX" \
+        --trigger-resource $bucket_input \
+        --trigger-event google.storage.object.finalize \
+        --memory 128MB \
+        --allow-unauthenticated
+fi
+
+# Build & Deploy Cloud Run Services
+if [[ $* != *--skip-cloudrun-init* ]]; then
+    cd src/init-analysis
+    cat  > gradle.properties <<EOF
+gcpProjectId=$GCP_PROJECT_ID
+gcrImage=$service_init_analysis
+EOF
+    ./gradlew jib
+    gcloud beta run deploy \
+        $service_init_analysis \
+        --image $service_init_analysis_image \
+        --platform managed \
+        --allow-unauthenticated
+    service_init_analysis_url=$(
+        gcloud beta run services describe $service_init_analysis \
+            --platform managed \
+            --format="value(status.address.url)"
+    )
+    subscription=$(
+        gcloud beta pubsub subscriptions list \
+            --filter="topic=projects/crappy-crocodile/topics/crappy-croc-file-ready" \
+            --format="value(name)"
+    )
+    if [[ ! $subscription =~ $service_init_analysis_subscription ]]; then
+        gcloud beta pubsub subscriptions create $service_init_analysis_subscription \
+            --topic $topic_new_video \
+            --push-endpoint=$service_init_analysis_url
+    fi
+
+    cd ../..
+fi
