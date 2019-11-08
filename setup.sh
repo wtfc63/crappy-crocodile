@@ -90,8 +90,6 @@ if [[ $* != *--skip-account-init* ]]; then
         gcloud projects add-iam-policy-binding $GCP_PROJECT_ID \
             --member "serviceAccount:$service_account@$GCP_PROJECT_ID.iam.gserviceaccount.com" \
             --role "roles/owner"
-        gcloud iam service-accounts keys create $credentials_file \
-            --iam-account "$service_account@$GCP_PROJECT_ID.iam.gserviceaccount.com"
     fi
 fi
 
@@ -158,8 +156,10 @@ fi
 
 # Build & Deploy Cloud Run Services
 if [[ $* != *--skip-cloudrun-init* ]]; then
-    cd src/init-analysis
+    gcloud iam service-accounts keys create $credentials_file \
+        --iam-account "$service_account@$GCP_PROJECT_ID.iam.gserviceaccount.com"
 
+    cd src/init-analysis
     mkdir -p "src/main/jib" && cp "../../$credentials_file" "src/main/jib/$credentials_file"
     cat  > gradle.properties <<EOF
 gcpProjectId=$GCP_PROJECT_ID
