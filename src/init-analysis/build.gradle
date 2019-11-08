@@ -38,6 +38,7 @@ dependencies {
     compile "io.micronaut:micronaut-runtime"
     compile "io.micronaut:micronaut-management"
     compile "commons-codec:commons-codec:1.13"
+    compile 'commons-io:commons-io:2.6'
     compile "com.google.code.gson:gson:2.8.6"
     compile "com.google.cloud:google-cloud-video-intelligence:0.115.0-beta"
     compile "com.google.cloud:google-cloud-storage:1.99.0"

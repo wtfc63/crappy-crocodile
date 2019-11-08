@@ -7,6 +7,7 @@ import com.google.cloud.videointelligence.v1p3beta1.LabelSegment;
 import com.google.cloud.videointelligence.v1p3beta1.Likelihood;
 import com.google.protobuf.Duration;
 
+import javax.inject.Inject;
 import java.time.LocalTime;
 import java.util.Arrays;
 import java.util.Collection;
@@ -256,6 +257,15 @@ public class Scene implements Comparable<Scene> {
                 start.toString(), end.toString(),
                 entities.stream()
                         .map(e -> e.toDescription(includeCategories))
+                        .collect(Collectors.joining(" - ")));
+    }
+
+    public String toEmojiTrackLine() {
+        return String.format(
+                "%s --> %s\n%s\n\n",
+                start.toString(), end.toString(),
+                entities.stream()
+                        .map(e -> EmojiConverter.convertToEmoji(e))
                         .collect(Collectors.joining(" - ")));
     }
 

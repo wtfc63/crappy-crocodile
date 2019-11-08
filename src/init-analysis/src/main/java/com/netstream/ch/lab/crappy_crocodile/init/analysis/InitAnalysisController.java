@@ -108,6 +108,17 @@ public class InitAnalysisController {
                             .setContentType("text/vtt")
                             .build();
                     Blob blob = gcs.create(blobInfo, textTrackContent.getBytes(StandardCharsets.UTF_8));
+                    System.out.println("Created text track: " + blob.getName());
+
+                    textTrackContent = exportEmojiTrack(scenes);
+                    blobId = BlobId.of(
+                            processingBucketName, getBlobName(video, "emoji.vtt"));
+                    blobInfo = BlobInfo.newBuilder(blobId)
+                            .setContentType("text/vtt")
+                            .build();
+                    blob = gcs.create(blobInfo, textTrackContent.getBytes(StandardCharsets.UTF_8));
+                    System.out.println("Created emoji track: " + blob.getName());
+
                     return new Result(video.getId(), blob.getSelfLink());
                 } else {
                     return new Result(
@@ -135,6 +146,10 @@ public class InitAnalysisController {
         }
     }
 
+    private String getOutputBucketName(String processingBucketName) {
+        return processingBucketName.substring(0, processingBucketName.lastIndexOf('-')) + "-output";
+    }
+
     private String getBlobName(String objectUrl) {
         final String bucketName = getBucketName(objectUrl);
         if (bucketName != null) {
@@ -152,6 +167,16 @@ public class InitAnalysisController {
         if (scenes != null) {
             return scenes.stream()
                     .map(s -> s.toTextTrackLine(includeCategories))
+                    .collect(Collectors.joining("\n"));
+        } else {
+            return null;
+        }
+    }
+
+    private String exportEmojiTrack(SortedSet<Scene> scenes) {
+        if (scenes != null) {
+            return scenes.stream()
+                    .map(Scene::toEmojiTrackLine)
                     .collect(Collectors.joining("\n"));
         } else {
             return null;
