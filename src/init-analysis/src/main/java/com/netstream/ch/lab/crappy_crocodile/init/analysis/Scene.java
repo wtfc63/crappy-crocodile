@@ -260,12 +260,12 @@ public class Scene implements Comparable<Scene> {
                         .collect(Collectors.joining(" - ")));
     }
 
-    public String toEmojiTrackLine() {
+    public String toEmojiTrackLine(EmojiConverter emojiConverter) {
         return String.format(
                 "%s --> %s\n%s\n\n",
                 start.toString(), end.toString(),
                 entities.stream()
-                        .map(e -> EmojiConverter.convertToEmoji(e))
+                        .map(e -> emojiConverter.convertToEmoji(e))
                         .collect(Collectors.joining(" - ")));
     }
 

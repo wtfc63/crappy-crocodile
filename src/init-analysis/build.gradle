@@ -2,6 +2,7 @@ plugins {
 //    id "io.spring.dependency-management" version "1.0.6.RELEASE"
     id "application"
     id "com.github.johnrengelman.shadow" version "5.0.0"
+    id "net.ltgt.apt" version "0.21"
     id "net.ltgt.apt-eclipse" version "0.21"
     id "net.ltgt.apt-idea" version "0.21"
     id "com.google.cloud.tools.jib" version "1.0.2"
@@ -26,11 +27,11 @@ configurations {
 }
 
 dependencies {
-    annotationProcessor platform("io.micronaut:micronaut-bom:1.2.0")
+    annotationProcessor platform("io.micronaut:micronaut-bom:1.2.6")
     annotationProcessor "io.micronaut:micronaut-inject-java"
     annotationProcessor "io.micronaut:micronaut-validation"
 //    annotationProcessor "io.micronaut:micronaut-graal"
-    implementation platform("io.micronaut:micronaut-bom:1.2.0")
+    implementation platform("io.micronaut:micronaut-bom:1.2.6")
     compile "io.micronaut:micronaut-http-client"
     compile "io.micronaut:micronaut-http-server-netty"
     compile "io.micronaut:micronaut-inject"
@@ -43,7 +44,7 @@ dependencies {
     compile "com.google.cloud:google-cloud-video-intelligence:0.115.0-beta"
     compile "com.google.cloud:google-cloud-storage:1.99.0"
     runtime "ch.qos.logback:logback-classic:1.2.3"
-    testAnnotationProcessor platform("io.micronaut:micronaut-bom:1.2.0")
+    testAnnotationProcessor platform("io.micronaut:micronaut-bom:1.2.6")
     testAnnotationProcessor "io.micronaut:micronaut-inject-java"
     testImplementation "org.junit.jupiter:junit-jupiter-api"
     testImplementation "io.micronaut.test:micronaut-test-junit5"

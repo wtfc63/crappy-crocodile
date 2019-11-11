@@ -17,11 +17,12 @@ import com.google.gson.Gson;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;
+import io.micronaut.http.annotation.PathVariable;
 import io.micronaut.http.annotation.Post;
 import org.apache.commons.codec.Charsets;
 import org.apache.commons.codec.binary.Base64;
 
-import java.io.InputStream;
+import javax.inject.Inject;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.SortedSet;
@@ -37,6 +38,9 @@ public class InitAnalysisController {
             Pattern.compile("^gs:\\/\\/([a-z0-9\\-]+)\\/(\\w+\\/?)*(\\.[a-zA-Z0-9]+)*$");
 
     private final Gson gson = new Gson();
+
+    @Inject
+    private EmojiConverter emojiConverter;
 
     @Post
     public HttpResponse<Result> initAnalysis(@Body PubSubBody body) {
@@ -58,6 +62,12 @@ public class InitAnalysisController {
                 return HttpResponse.badRequest(new Result(video.getId(), e.getMessage()));
             }
         }
+    }
+
+    @Post("/test/converter/{entity}")
+    public HttpResponse<String> testConverter(@PathVariable String entity) {
+        final String emoji = emojiConverter.lookUp(entity);
+        return (emoji != null) ? HttpResponse.ok(emoji) : HttpResponse.notFound();
     }
 
     private SortedSet<Scene> initCloudIntel(Video video) throws Exception {
@@ -176,7 +186,7 @@ public class InitAnalysisController {
     private String exportEmojiTrack(SortedSet<Scene> scenes) {
         if (scenes != null) {
             return scenes.stream()
-                    .map(Scene::toEmojiTrackLine)
+                    .map(s -> s.toEmojiTrackLine(emojiConverter))
                     .collect(Collectors.joining("\n"));
         } else {
             return null;
