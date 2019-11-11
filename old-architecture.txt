@@ -1,0 +1,67 @@
+     _                 +------------------------+
+    (")                |                        |
+   \_|_/ Upload Video  |  Google Cloud Storage  |
+     |  +------------->+                        |
+    / \                |      Input Bucket      |
+                       |                        |
+                       +-----------+------------+
+                                   |
+                                   |
+                                   | GCS event
+                                   |
+                                   v
+                         +---------+----------+
+                         |                    |
+                         |   Cloud Function   |  1. Calculate hash
+                         |                    |  2. Create Folder in output Bucket an copy video to it
+                         |  Preprocess Video  |     (if not exists, use hash as name)
+                         |                    |
+                         +---------+----------+
+                                   |
+                                   |
+                                   | Pub/Sub Event
+                                   |
+                                   v
+                         +---------+-----------+
+                         |                     |
+                         |  Cloud Run Service  |            Start Analysis
+                +--------+                     +--------------------------+
+  Schedule      |        |  Initiate Analysis  |                          |
+  in X seconds  |        |                     |                          v
+  (using Cloud  |        +---------------------+          +---------------+----------------+
+  Scheduler)    |                                         |                                |
+                |                                         |  Cloud Video Intelligence API  |
+                |                                         |                                |
+                |                                         +---------------+----------------+
+                v                                                         ^
+   +------------+--------------+                                          |
+   |                           |             Check Progress / Get Results |
+   |       Cloud Function      +<-----------------------------------------+
+   |                           |
+   |   Check Analysis Results  +<--+
+   |                           |   |
+   +------------+---------+----+   | Reschedule
+                |         |        | in X seconds
+                |         +--------+
+                |
+Pub/Sub Event:  |
+Publish Results |        +----------------------+
+                |        |                      |  1. Create Subtitles file in video's output Folder
+                |        |  Cloud Run Service   |     (if not exists)
+                +------->+                      |  2. For each Scene:
+                         |  Generate Subtitles  |     + Find fitting Emojis for Objects
+                         |                      |     + Ammend Subtitles file
+                         +----------+-----------+
+                                    |
+                                    |
+                                    | Generated Subtitles
+                                    |
+                                    v
+                        +-----------+------------+
+                        |                        |
+                        |  Google Cloud Storage  |
+                        |                        |
+                        |      Output Bucket     |
+                        |                        |
+                        +------------------------+
+

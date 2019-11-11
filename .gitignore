@@ -2,4 +2,9 @@
 .idea/
 
 venv/
+.gradle/
+
+gradle.properties
+gcp-credentials.json
+
 config.sh

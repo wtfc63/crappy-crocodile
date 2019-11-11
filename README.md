@@ -27,72 +27,61 @@ The application shall use a processing pipeline with a flow where the uploading 
 ### Pipeline
 
 ```
-     _                 +------------------------+
-    (")                |                        |
-   \_|_/ Upload Video  |  Google Cloud Storage  |
-     |  +------------->+                        |
-    / \                |      Input Bucket      |
-                       |                        |
-                       +-----------+------------+
-                                   |
-                                   |
-                                   | GCS event
-                                   |
-                                   v
-                         +---------+----------+
-                         |                    |
-                         |   Cloud Function   |  1. Calculate hash
-                         |                    |  2. Create Folder in output Bucket an copy video to it
-                         |  Preprocess Video  |     (if not exists, use hash as name)
-                         |                    |
-                         +---------+----------+
-                                   |
-                                   |
-                                   | Pub/Sub Event
-                                   |
-                                   v
-                         +---------+-----------+
-                         |                     |
-                         |  Cloud Run Service  |            Start Analysis
-                +--------+                     +--------------------------+
-  Schedule      |        |  Initiate Analysis  |                          |
-  in X seconds  |        |                     |                          v
-  (using Cloud  |        +---------------------+          +---------------+----------------+
-  Scheduler)    |                                         |                                |
-                |                                         |  Cloud Video Intelligence API  |
-                |                                         |                                |
-                |                                         +---------------+----------------+
-                v                                                         ^
-   +------------+--------------+                                          |
-   |                           |             Check Progress / Get Results |
-   |       Cloud Function      +<-----------------------------------------+
-   |                           |
-   |   Check Analysis Results  +<--+
-   |                           |   |
-   +------------+---------+----+   | Reschedule
-                |         |        | in X seconds
-                |         +--------+
-                |
-Pub/Sub Event:  |
-Publish Results |        +----------------------+
-                |        |                      |  1. Create Subtitles file in video's output Folder
-                |        |  Cloud Run Service   |     (if not exists)
-                +------->+                      |  2. For each Scene:
-                         |  Generate Subtitles  |     + Find fitting Emojis for Objects
-                         |                      |     + Ammend Subtitles file
-                         +----------+-----------+
-                                    |
-                                    |
-                                    | Generated Subtitles
-                                    |
-                                    v
-                        +-----------+------------+
-                        |                        |
-                        |  Google Cloud Storage  |
-                        |                        |
-                        |      Output Bucket     |
-                        |                        |
-                        +------------------------+
+                                      _                 +------------------------+
+                                     (")                |                        |
+                                    \_+_/ Upload Video  |  Google Cloud Storage  |
+                                      +  +------------->+                        |
+                                     / \                |      Input Bucket      |
+                                                        |                        |
+                                                        +-----------+------------+
+                                                                    |
+                                                                    |
+                                                                    | GCS event
+                                                                    |
+                                                                    |
+                                                          +---------+----------+
+                                                          |                    |
+                                                          |   Cloud Function   |  1. Calculate hash
+                                                          |                    |  2. Create Folder in processing Bucket an copy video to it
+                                                          |  Preprocess Video  |     (if not exists, use hash as name)
+                                                          |                    |  3. Store metadata as JSON in processing Bucket
+                                                          +---------+----------+
+                                                                    |
+                                                                    |
+                                                                    | Pub/Sub Event
+                                                                    |
+                                                                    |
+                                                          +---------+-----------+
+                                                          |                     |
+1. Initiate Analysis through the Video Intelligence API   |  Cloud Run Service  |            Start Analysis
+2. Wait for results                                       |                     +--------------------------+
+3. Use Shot Lable Annotations to collect a set of Scenes  |  Initiate Analysis  |                          |
+4. Generate Subtitles for the Objects in Scene            |                     |                          v
+5. Find fitting Emojis for the Objects in Scene and       |                     |          +---------------+----------------+
+   create Subtitles for them                              |                     |          |                                |
+6. Move the Video, Metadata and Subtitle files            |                     |          |  Cloud Video Intelligence API  |
+   to the output Bucket                                   |                     |          |                                |
+                                                          |                     |          +---------------+----------------+
+                                                          |                     |                          |
+                                                          |                     |                          |
+                                      +-------------------+                     +<-------------------------+
+                                      |                   |                     |
+                                      | Generated Files   |                     |
+                                      |                   +---------+-----------+
+                                      |                             |
+                          +-----------+------------+                |
+                          |                        |                |
+                          |  Google Cloud Storage  |                | Generated Subtitles
+                          |                        |                |
+                          |    Processing Bucket   |                |
+                          |                        |                |
+                          +------------------------+     +------------------------+
+                                                         |          |             |
+                                                         |  Google Cloud Storage  |
+                                                         |                        |
+                                                         |      Output Bucket     |
+                                                         |                        |
+                                                         +------------------------+
 
 ```
 (Diagram created using [asciiflow.com](http://asciiflow.com/))
@@ -111,11 +100,10 @@ or export them manually before starting the setup script.
 ```
 $ cat ./config.sh
 #!/bin/bash
-
 export GCP_PROJECT_ID="<GCP-PROJECT-NAME>"
 export GCP_LOCATION="europe-west1"
-
-export BUCKET_PREFIX="crappy-croc"
+export GCR_HOST="eu.gcr.io"
+export PREFIX="crappy-croc"
 
 $ ./setup.sh 
 Setting GCP project to '<GCP-PROJECT-NAME>'...
@@ -123,10 +111,49 @@ Updated property [core/project].
 Creating gs://crappy-croc-input/...
 Creating gs://crappy-croc-processing/...
 Creating gs://crappy-croc-output/...
-
+[...]
 ```
 
 **REMINDER:** GCP Projects and Cloud Storage Buckets need to have a globally unique name, some make sure the names you use are available!
 
+Once the environment is set up, you can upload a video file into the Input Bucket.
+Either use the [Google Cloud Console](https://console.cloud.google.com/storage/browser) or the `gsutil` command line client:
 
+```bash
+$ gsutil cp sample-videos/JaneGoodall.mp4 gs://crappy-croc-input
+```
 
+After a few minutes, a new "folder" should appear in the Output Bucket containing the video file and subtitles.
+
+```bash
+$ watch gsutil list gs://crappy-croc-output
+Every 2.0s: gsutil list gs://crappy-croc-output                                                                                                                                                                                                 chdhaju0-Desktop: Mon Nov 11 17:03:43 2019
+
+gs://crappy-croc-output/eEM3NmRoZExDMWlxc2ZJdkJsZGpoZz09/
+^C
+
+$ gsutil list gs://crappy-croc-output/eEM3NmRoZExDMWlxc2ZJdkJsZGpoZz09/
+gs://crappy-croc-output/eEM3NmRoZExDMWlxc2ZJdkJsZGpoZz09/emoji.vtt
+gs://crappy-croc-output/eEM3NmRoZExDMWlxc2ZJdkJsZGpoZz09/metadata.json
+gs://crappy-croc-output/eEM3NmRoZExDMWlxc2ZJdkJsZGpoZz09/objects.vtt
+gs://crappy-croc-output/eEM3NmRoZExDMWlxc2ZJdkJsZGpoZz09/video.mp4
+```
+
+To test the generated subtitles, you can download them and use the VideoLAN player:
+
+```bash
+$ gsutil cp gs://crappy-croc-output/eEM3NmRoZExDMWlxc2ZJdkJsZGpoZz09/** /tmp/video/
+Copying gs://crappy-croc-output/eEM3NmRoZExDMWlxc2ZJdkJsZGpoZz09/emoji.vtt...
+Copying gs://crappy-croc-output/eEM3NmRoZExDMWlxc2ZJdkJsZGpoZz09/metadata.json...
+Copying gs://crappy-croc-output/eEM3NmRoZExDMWlxc2ZJdkJsZGpoZz09/objects.vtt... 
+Copying gs://crappy-croc-output/eEM3NmRoZExDMWlxc2ZJdkJsZGpoZz09/video.mp4...   
+\ [4 files][ 29.9 MiB/ 29.9 MiB]                                                
+Operation completed over 4 objects/29.9 MiB.
+
+$  vlc --sub-file /tmp/video/objects.vtt /tmp/video/video.mp4
+VLC media player 3.0.8 Vetinari (revision 3.0.8-0-gf350b6b5a7)
+[...]
+$ vlc --sub-file /tmp/video/emoji.vtt /tmp/video/video.mp4
+VLC media player 3.0.8 Vetinari (revision 3.0.8-0-gf350b6b5a7)
+[...]
+```
