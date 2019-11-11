@@ -15,14 +15,17 @@ our goal will be to build the application within the Google Cloud Platform (GCP)
 
 ## Architecture
 
-The application shall use a processing pipeline with a flow where the uploading of a video to an input Bucket triggers the video analysis and initiates the polling of analysis results, new result data in turn triggers the generation of the subtitle files in an output Bucket.
+The application shall use a processing pipeline with a flow where the uploading of a video to an input Bucket 
+triggers the video analysis and the generation of the subtitle files in an processing Bucket.
+The finished files are then moved to an output Bucket.
 
 ### Components
 
-* Video Preprocessing (Cloud Function): To be triggered by new files in the input Bucket (validates and preprocesses video file, triggers Pub/Sub event)
-* Initialization of Analysis (Cloud Run Service): A Container that initiates the video Analysis and schedules the polling of Analysis results (triggered by the Pub/Sub event)
-* Checking Analysis Results (Cloud Function): Monitors the Analysis for progress (triggers Pub/Sub events for new results)
-* Subtitle Generation (Cloud Run Service): Generates Subtitles files (or ammends existing ones) from new results (triggered by the Pub/Sub event)
+* Video Preprocessing (Cloud Function): 
+  To be triggered by new files in the input Bucket (validates and preprocesses video file, triggers Pub/Sub event)
+* Initialization of Analysis (Cloud Run Service): 
+  A Container that initiates the video Analysis 
+  and ~~schedules the polling of Analysis results~~ generates the Subtitles files (triggered by the Pub/Sub event)
 
 ### Pipeline
 
