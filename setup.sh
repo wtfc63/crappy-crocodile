@@ -156,8 +156,10 @@ fi
 
 # Build & Deploy Cloud Run Services
 if [[ $* != *--skip-cloudrun-init* ]]; then
-    gcloud iam service-accounts keys create $credentials_file \
-        --iam-account "$service_account@$GCP_PROJECT_ID.iam.gserviceaccount.com"
+    if [ ! -f $CONFIG ]; then
+        gcloud iam service-accounts keys create $credentials_file \
+            --iam-account "$service_account@$GCP_PROJECT_ID.iam.gserviceaccount.com"
+    fi
 
     cd src/init-analysis
     mkdir -p "src/main/jib" && cp "../../$credentials_file" "src/main/jib/$credentials_file"
@@ -170,6 +172,7 @@ EOF
         $service_init_analysis \
         --image $service_init_analysis_image \
         --memory 512Mi \
+        --timeout 10m \
         --update-env-vars "GOOGLE_APPLICATION_CREDENTIALS=$credentials_file" \
         --platform managed \
         --allow-unauthenticated
