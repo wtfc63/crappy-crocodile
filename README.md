@@ -106,12 +106,61 @@ export GCR_HOST="eu.gcr.io"
 export PREFIX="crappy-croc"
 
 $ ./setup.sh 
-Setting GCP project to '<GCP-PROJECT-NAME>'...
+# Setting GCP project to '<GCP-PROJECT-NAME>' (PROJECT_NUMBER=<GCP-PROJECT-NR>) and default location to 'europe-west1'...
 Updated property [core/project].
+Updated property [composer/location].
+Updated property [run/region].
+gcloud credential helpers already registered correctly.
 Creating gs://crappy-croc-input/...
 Creating gs://crappy-croc-processing/...
 Creating gs://crappy-croc-output/...
-[...]
+Created topic [projects/<GCP-PROJECT-NAME>/topics/crappy-croc-file-ready].
+Created topic [projects/<GCP-PROJECT-NAME>/topics/crappy-croc-processing-started].
+Created topic [projects/<GCP-PROJECT-NAME>/topics/crappy-croc-processing-completed].
+
+# Deployment of Cloud Function 'crappy-croc-process-input'...
+Deploying function (may take a while - up to 2 minutes)...done.                                                                                                                                                                                                                          
+availableMemoryMb: 128
+entryPoint: process_input
+environmentVariables:
+  PREFIX: crappy-croc
+eventTrigger:
+  eventType: google.storage.object.finalize
+  failurePolicy: {}
+  resource: projects/_/buckets/crappy-croc-input
+  service: storage.googleapis.com
+labels:
+  deployment-tool: cli-gcloud
+name: projects/<GCP-PROJECT-NAME>/locations/europe-west1/functions/crappy-croc-process-input
+runtime: python37
+serviceAccountEmail: <GCP-PROJECT-NAME>@appspot.gserviceaccount.com
+sourceUploadUrl: https://storage.googleapis.com/gcf-upload-europe-west1-516741e7-c414-4624-9fbe-a37a51f9a81d/8b95de56-ada7-4672-bc0b-f533df71e8ec.zip?GoogleAccessId=service-423718193427@gcf-admin-robot.iam.gserviceaccount.com&Expires=1573492546&Signature=SqKaJTfE0ZFjzHYjNRFkR%2BR5ITIJuFJa6D0zXGIWg5AvgVBu4d9xVMoQx%2FXWVd7D8XaMvCVCao9ZNmA%2B3O2IV5J9sJuQj08NBATjVpgE6XyNB4P%2FUPJxEYg89ztuqu%2Bz0FV6cJeuqWQrENiKxSC4UGASihnrzqpP%2Fc1p%2BVX79MEA0Ez%2FXMGmToccGCng7jCk%2BJUhwAYPD9J5gld83vru31t1IGL4ctriFvIYPxI%2BJC%2FtPp5ts1a2Yh%2Fa0A5q1qA51liJKV0yryQEKFqSe0IjK5YPv6nfoH%2B2Z9E%2FqEmyNvw3OEw77qe%2Fw1qQ792zSuROuhlnm55yFeF0dbhLKqfcUA%3D%3D
+status: ACTIVE
+timeout: 60s
+updateTime: '2019-11-11T16:47:30Z'
+versionId: '1'
+
+# Deployment of Cloud Run Service 'crappy-croc-init-analysis'...
+Containerizing application to eu.gcr.io/<GCP-PROJECT-NAME>/crappy-croc-init-analysis...
+The base image requires auth. Trying again for adoptopenjdk/openjdk11-openj9:alpine-slim...
+
+Container entrypoint set to [java, -XX:TieredStopAtLevel=1, -XX:MaxRAM=256m, -cp, /app/resources:/app/classes:/app/libs/*, com.netstream.ch.lab.crappy_crocodile.init.analysis.Application]
+
+Built and pushed image as eu.gcr.io/<GCP-PROJECT-NAME>/crappy-croc-init-analysis
+Executing tasks:
+[==============================] 100.0% complete
+
+
+BUILD SUCCESSFUL in 5s
+3 actionable tasks: 1 executed, 2 up-to-date
+Deploying container to Cloud Run service [crappy-croc-init-analysis] in project [<GCP-PROJECT-NAME>] region [europe-west1]
+✓ Deploying new service... Done.                                                                                                                                                                                                                                                         
+  ✓ Creating Revision...                                                                                                                                                                                                                                                                 
+  ✓ Routing traffic...                                                                                                                                                                                                                                                                   
+  ✓ Setting IAM Policy...                                                                                                                                                                                                                                                                
+Done.                                                                                                                                                                                                                                                                                    
+Service [crappy-croc-init-analysis] revision [crappy-croc-init-analysis-529w5] has been deployed and is serving 100 percent of traffic at https://crappy-croc-init-analysis-y46c45mdsq-ew.a.run.app
+Created subscription [projects/<GCP-PROJECT-NAME>/subscriptions/crappy-croc-init-analysis-subscription].
 ```
 
 **REMINDER:** GCP Projects and Cloud Storage Buckets need to have a globally unique name, some make sure the names you use are available!
@@ -157,3 +206,47 @@ $ vlc --sub-file /tmp/video/emoji.vtt /tmp/video/video.mp4
 VLC media player 3.0.8 Vetinari (revision 3.0.8-0-gf350b6b5a7)
 [...]
 ```
+
+### Environment Teardown
+
+The [setup script](setup.sh) can also be used to tear down the environment using the `--teardown` parameter:
+
+```bash
+$ ./setup.sh --teardown
+# Setting GCP project to '<GCP-PROJECT-NAME>' (PROJECT_NUMBER_NR=<GCP-PROJECT-NR>) and default location to 'europe-west1'...
+Updated property [core/project].
+Updated property [composer/location].
+Updated property [run/region].
+gcloud credential helpers already registered correctly.
+
+Tearing down the system...
+# Removing the Pub/Sub Subscriptions if present...
+Deleted subscription [projects/<GCP-PROJECT-NAME>/subscriptions/crappy-croc-init-analysis-subscription].
+# Removing the Cloud Run Services if present...
+Service [crappy-croc-init-analysis] will be deleted.
+
+Do you want to continue (Y/n)?  y
+
+Deleted service [crappy-croc-init-analysis].
+# Removing the Cloud Functions if present...
+Resource [projects/<GCP-PROJECT-NAME>/locations/europe-west1/functions/c
+rappy-croc-process-input] will be deleted.
+
+Do you want to continue (Y/n)?  y
+
+Waiting for operation to finish...done.                                                                                                                                                                                                                                                  
+Deleted [projects/<GCP-PROJECT-NAME>/locations/europe-west1/functions/crappy-croc-process-input].
+# Removing the Pub/Sub Topics if present...
+Deleted topic [projects/<GCP-PROJECT-NAME>/topics/crappy-croc-file-ready].
+Deleted topic [projects/<GCP-PROJECT-NAME>/topics/crappy-croc-processing-started].
+Deleted topic [projects/<GCP-PROJECT-NAME>/topics/crappy-croc-processing-completed].
+# Removing the Storage Buckets if present...
+Removing gs://crappy-croc-input/...
+Removing gs://crappy-croc-processing/...
+Removing gs://crappy-croc-output/...
+```
+
+Keep in mind that there is a 10 day retention period configured for the Output Bucket by default, 
+which will prevent you from deleting the Bucket if there are objects in it that are younger than the retention period.
+If you want to remove the Bucket earlier, you'll have to delete the Retention Policy on the Bucket 
+in order to be able to delete it (can be done in the "Bucket Lock" tab of the [GCP Console](https://console.cloud.google.com/storage/browser/)).

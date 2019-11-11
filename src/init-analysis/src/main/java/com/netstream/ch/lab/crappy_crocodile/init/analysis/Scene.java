@@ -254,7 +254,7 @@ public class Scene implements Comparable<Scene> {
     public String toTextTrackLine(boolean includeCategories) {
         return String.format(
                 "%s --> %s\n%s\n\n",
-                start.toString(), end.toString(),
+                start.toString(), end.toString(), // TODO trim to milliseconds
                 entities.stream()
                         .map(e -> e.toDescription(includeCategories))
                         .collect(Collectors.joining(" - ")));
@@ -263,9 +263,9 @@ public class Scene implements Comparable<Scene> {
     public String toEmojiTrackLine(EmojiConverter emojiConverter) {
         return String.format(
                 "%s --> %s\n%s\n\n",
-                start.toString(), end.toString(),
+                start.toString(), end.toString(), // TODO trim to milliseconds
                 entities.stream()
-                        .map(e -> emojiConverter.convertToEmoji(e))
+                        .map(emojiConverter::convertToEmoji)
                         .collect(Collectors.joining(" - ")));
     }
 
