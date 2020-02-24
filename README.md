@@ -91,6 +91,12 @@ The finished files are then moved to an output Bucket.
 
 ## Usage
 
+:warning: 
+**Since the Video Intelligence API is billed per minute of video processed after the Free Tier is exhaused, 
+it is highly recommended to set some pretty low quota on the API during development.
+The `init-analysis` Cloud Run service will only create one processing Bucket per video, 
+but breaking changes to the service could lead to unacknowledged Pub/Sub messages which might cause a lot of retries.**
+
 ### Environment Setup
 
 * To setup the environment for the project, the [Google Cloud SDK](https://cloud.google.com/sdk/) and a GCP Project will be needed.
