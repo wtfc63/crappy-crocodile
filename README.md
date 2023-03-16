@@ -2,7 +2,7 @@
 
 _Crappy Crocodile_ was build as a LabDay project at Netstream AG, to demonstrate a Cloud Native architecture for a [Serverless](https://en.wikipedia.org/wiki/Serverless_computing) video processing application.
 
-You can find a presentation about the project [here](https://docs.google.com/presentation/d/1hnHYhaKOEytpQVy3GxU5EJb5bXH7tRVYb-dAFdQMs8U) \((PDF)[./presentation.pdf]\).
+You can find a presentation about the project [here](https://docs.google.com/presentation/d/1hnHYhaKOEytpQVy3GxU5EJb5bXH7tRVYb-dAFdQMs8U) ([PDF](./presentation.pdf)).
 
 ## Purpose
 
