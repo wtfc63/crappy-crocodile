@@ -2,6 +2,8 @@
 
 _Crappy Crocodile_ was build as a LabDay project at Netstream AG, to demonstrate a Cloud Native architecture for a [Serverless](https://en.wikipedia.org/wiki/Serverless_computing) video processing application.
 
+You can find a presentation about the project [here](https://docs.google.com/presentation/d/1hnHYhaKOEytpQVy3GxU5EJb5bXH7tRVYb-dAFdQMs8U) \((PDF)[./presentation.pdf]\).
+
 ## Purpose
 
 Using Google's [Video Intelligence API](https://cloud.google.com/video-intelligence/), detect the objects in a given video, find fitting emojis for these objects and create Emoji subtitles for the video from them.
@@ -101,6 +103,7 @@ but breaking changes to the service could lead to unacknowledged Pub/Sub message
 
 * To setup the environment for the project, the [Google Cloud SDK](https://cloud.google.com/sdk/) and a GCP Project will be needed.
 * To setup your development environment for the Python Cloud Functions, follow the ["Setting up a Python development environment"](https://cloud.google.com/python/setup) guide.
+* The [`docker-credential-gcr`](https://github.com/GoogleCloudPlatform/docker-credential-gcr) utility is used to push images to the Google Container Registry during the build process and also needs to be installed.
 
 Once the Python environment, the SDK and the Project are set up, one can use the [`./setup.sh`](setup.sh) script to create the required Cloud Storage Buckets.
 Either create a configuration file with the name `config.sh` in the same directory to initialize the required environment variables,

@@ -15,17 +15,17 @@ confirm() {
 }
 
 # Check if required tools (the Google Cloud SDK) are installed
-PREFIX="# PREREQUISITES CHECK #"
+LINE_PREFIX="# PREREQUISITES CHECK #"
 if [[ -z `command -v gcloud` ]]; then
-    echo "$PREFIX Please install the Google Cloud SDK and add it to the path!"
+    echo "$LINE_PREFIX Please install the Google Cloud SDK and add it to the path!"
     exit -1
 fi
 if [[ -z `command -v gsutil` ]]; then
-    echo "$PREFIX Please install 'gsutil' (included in the Google Cloud SDK) and add it to the path!"
+    echo "$LINE_PREFIX Please install 'gsutil' (included in the Google Cloud SDK) and add it to the path!"
     exit -1
 fi
 if [[ -z `command -v docker-credential-gcr` ]]; then
-    echo "$PREFIX Please install 'docker-credential-gcr' (included in the Google Cloud SDK) and add it to the path!"
+    echo "$LINE_PREFIX Please install 'docker-credential-gcr' (included in the Google Cloud SDK) and add it to the path!"
     exit -1
 fi
 
@@ -75,6 +75,7 @@ service_init_analysis_subscription="$service_init_analysis-subscription"
 
 # Set GCP project and default location
 echo "# Setting GCP project to '$GCP_PROJECT_ID' (PROJECT_NUMBER=$project_nr) and default location to '$GCP_LOCATION'..."
+echo "# Resources will have the prefix: '$PREFIX'..."
 gcloud config set project ${GCP_PROJECT_ID}
 gcloud config set composer/location ${GCP_LOCATION}
 gcloud config set run/region ${GCP_LOCATION}
@@ -89,8 +90,8 @@ if [[ $* != *--teardown ]]; then
             gcloud iam service-accounts list --filter="display_name=$service_account" --format="value(email)"
         )
         if [[ ! ${service_account_email} =~ $service_account ]]; then
-            gcloud iam service-accounts create ${service_account} --display-name ${service_account}
-            gcloud projects add-iam-policy-binding ${GCP_PROJECT_ID} \
+            gcloud iam service-accounts create "${service_account}" --display-name "${service_account}"
+            gcloud projects add-iam-policy-binding "${GCP_PROJECT_ID}" \
                 --member "serviceAccount:$service_account@$GCP_PROJECT_ID.iam.gserviceaccount.com" \
                 --role "roles/owner"
         fi
@@ -253,6 +254,15 @@ else
     fi
     if [[ " ${buckets[@]} " =~ $gs_output ]]; then
         gsutil rm -r ${gs_output}
+    fi
+    
+    echo "# Removing the Service Account if present..."
+    service_account_email=$(
+        gcloud iam service-accounts list --filter="display_name=$service_account" --format="value(email)"
+    )
+    if [[ ${service_account_email} =~ $service_account ]]; then
+        gcloud iam service-accounts delete "$service_account@$GCP_PROJECT_ID.iam.gserviceaccount.com"
+        rm -f $credentials_file
     fi
 
 fi
